@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / compiled Python files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env
+
+# Chroma persistence directory
+chroma/
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Dependency directories
+node_modules/
+
+# Docker-related files
+*.tar
+*.pid
