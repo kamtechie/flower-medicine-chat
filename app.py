@@ -102,8 +102,9 @@ def _pdf_to_texts(pdf_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
 
 def _embed(texts: List[str]) -> List[List[float]]:
     # OpenAI embedding API; returns 1536-d for text-embedding-3-small
-    # Batch up texts so no batch exceeds 300,000 tokens, then fire off all batches
-    MAX_TOKENS = 300000
+    # Batch up texts so no batch exceeds 250k tokens (OpenAI limit is 300k but we want to be safe)
+    # then fire off all batches
+    MAX_TOKENS = 250000
     batches = []
     current_batch = []
     current_tokens = 0
@@ -129,10 +130,9 @@ def _get_token_count(text: str) -> int:
     enc = tiktoken.encoding_for_model(OPENAI_EMBED_MODEL)
     return len(enc.encode(text))
 
-def _is_duplicate_chunk(chunk_text: str, source_meta: dict) -> bool:
-    # Embed the chunk text using the same model as the collection
-    embedding = _embed([chunk_text])[0]
-    results = coll.query(query_embeddings=[embedding], where={"source": source_meta.get("source")}, n_results=1)
+def _is_duplicate_chunk(chunk_embedding: list, chunk_text: str, source_meta: dict) -> bool:
+    # Check if a chunk with the same embedding and source metadata already exists in the collection
+    results = coll.query(query_embeddings=[chunk_embedding], where={"source": source_meta.get("source")}, n_results=1)
     docs = results.get("documents", [[]])[0]
     return any(doc == chunk_text for doc in docs)
 
@@ -154,15 +154,16 @@ async def ingest_pdf(file: UploadFile = File(...)):
         ids = []
         docs = []
         metas = []
-        for c in chunks:
-            if not _is_duplicate_chunk(c["text"], c["metadata"]):
+        embeddings = _embed([c["text"] for c in chunks])
+        for c, emb in zip(chunks, embeddings):
+            if not _is_duplicate_chunk(emb, c["text"], c["metadata"]):
                 ids.append(c["id"])
                 docs.append(c["text"])
                 metas.append(c["metadata"])
         if not docs:
             logger.info("All chunks for %s are duplicates, skipping.", fname)
             return JSONResponse({"ok": False, "msg": "All chunks are duplicates."}, status_code=200)
-        vecs = _embed(docs)
+        vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
         coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
 
         dt = time.time() - t0
@@ -199,15 +200,16 @@ def ingest_folder(path: str = Form(...)):
             ids = []
             docs = []
             metas = []
-            for c in chunks:
-                if not _is_duplicate_chunk(c["text"], c["metadata"]):
+            embeddings = _embed([c["text"] for c in chunks])
+            for c, emb in zip(chunks, embeddings):
+                if not _is_duplicate_chunk(emb, c["text"], c["metadata"]):
                     ids.append(c["id"])
                     docs.append(c["text"])
                     metas.append(c["metadata"])
             if not docs:
                 logger.info("All chunks for %s are duplicates, skipping.", fname)
                 continue
-            vecs = _embed(docs)
+            vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
             coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
             total_chunks += len(docs)
             files_done += 1
