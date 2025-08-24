@@ -17,6 +17,7 @@ from pypdf import PdfReader
 from io import BytesIO
 
 from openai import OpenAI
+import tiktoken
 
 # ---------- Logging ----------
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -101,9 +102,39 @@ def _pdf_to_texts(pdf_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
 
 def _embed(texts: List[str]) -> List[List[float]]:
     # OpenAI embedding API; returns 1536-d for text-embedding-3-small
-    resp = oa.embeddings.create(model=OPENAI_EMBED_MODEL, input=texts)
-    return [d.embedding for d in resp.data]
+    # Batch up texts so no batch exceeds 300,000 tokens, then fire off all batches
+    MAX_TOKENS = 300000
+    batches = []
+    current_batch = []
+    current_tokens = 0
+    for t in texts:
+        t_tokens = _get_token_count(t)
+        if current_tokens + t_tokens > MAX_TOKENS and current_batch:
+            batches.append(current_batch)
+            current_batch = []
+            current_tokens = 0
+        current_batch.append(t)
+        current_tokens += t_tokens
+    if current_batch:
+        batches.append(current_batch)
+    if len(batches) > 1:
+        logger.info(f"Embedding request split into {len(batches)} batches due to token limit.")
+    out = []
+    for batch in batches:
+        resp = oa.embeddings.create(model=OPENAI_EMBED_MODEL, input=batch)
+        out.extend([d.embedding for d in resp.data])
+    return out
 
+def _get_token_count(text: str) -> int:
+    enc = tiktoken.encoding_for_model(OPENAI_EMBED_MODEL)
+    return len(enc.encode(text))
+
+def _is_duplicate_chunk(chunk_text: str, source_meta: dict) -> bool:
+    # Embed the chunk text using the same model as the collection
+    embedding = _embed([chunk_text])[0]
+    results = coll.query(query_embeddings=[embedding], where={"source": source_meta.get("source")}, n_results=1)
+    docs = results.get("documents", [[]])[0]
+    return any(doc == chunk_text for doc in docs)
 
 # ---------- Ingestion ----------
 @app.post("/ingest/pdf")
@@ -120,16 +151,23 @@ async def ingest_pdf(file: UploadFile = File(...)):
             logger.warning("Ingest PDF: no extractable text in %s", fname)
             return JSONResponse({"ok": False, "msg": "No extractable text found."}, status_code=400)
 
-        ids = [c["id"] for c in chunks]
-        docs = [c["text"] for c in chunks]
-        metas = [c["metadata"] for c in chunks]
-
+        ids = []
+        docs = []
+        metas = []
+        for c in chunks:
+            if not _is_duplicate_chunk(c["text"], c["metadata"]):
+                ids.append(c["id"])
+                docs.append(c["text"])
+                metas.append(c["metadata"])
+        if not docs:
+            logger.info("All chunks for %s are duplicates, skipping.", fname)
+            return JSONResponse({"ok": False, "msg": "All chunks are duplicates."}, status_code=200)
         vecs = _embed(docs)
         coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
 
         dt = time.time() - t0
-        logger.info("Ingest PDF done: %s -> %d chunks (%.2fs)", fname, len(chunks), dt)
-        return {"ok": True, "chunks": len(chunks), "file": fname, "seconds": round(dt, 2)}
+        logger.info("Ingest PDF done: %s -> %d new chunks (%.2fs)", fname, len(docs), dt)
+        return {"ok": True, "chunks": len(docs), "file": fname, "seconds": round(dt, 2)}
     except Exception as e:
         logger.exception("Ingest PDF failed: %s", fname)
         return JSONResponse({"ok": False, "msg": str(e)}, status_code=500)
@@ -158,14 +196,22 @@ def ingest_folder(path: str = Form(...)):
             if not chunks:
                 logger.warning("No extractable text: %s", fname)
                 continue
-            ids = [c["id"] for c in chunks]
-            docs = [c["text"] for c in chunks]
-            metas = [c["metadata"] for c in chunks]
+            ids = []
+            docs = []
+            metas = []
+            for c in chunks:
+                if not _is_duplicate_chunk(c["text"], c["metadata"]):
+                    ids.append(c["id"])
+                    docs.append(c["text"])
+                    metas.append(c["metadata"])
+            if not docs:
+                logger.info("All chunks for %s are duplicates, skipping.", fname)
+                continue
             vecs = _embed(docs)
             coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
-            total_chunks += len(chunks)
+            total_chunks += len(docs)
             files_done += 1
-            logger.info("Ingested %s -> %d chunks", fname, len(chunks))
+            logger.info("Ingested %s -> %d new chunks", fname, len(docs))
         except Exception as e:
             logger.exception("Failed ingest for %s", pdf_path)
 
