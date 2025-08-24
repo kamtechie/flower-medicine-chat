@@ -15,14 +15,7 @@
   <body>
     <h1>Flower Medicine Q&A</h1>
 
-    <section>
-      <h3>Upload a PDF</h3>
-      <form id="uploadForm">
-        <input type="file" id="pdf" accept="application/pdf" required />
-        <button type="submit">Ingest PDF</button>
-      </form>
-      <p id="uploadMsg" class="muted"></p>
-    </section>
+
 
     <hr />
 
@@ -47,18 +40,6 @@
         } catch { /* ignore */ }
       }
       refreshStats();
-
-      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const file = document.getElementById('pdf').files[0];
-        if (!file) return;
-        const fd = new FormData();
-        fd.append('file', file);
-        const r = await fetch('/ingest/pdf', { method: 'POST', body: fd });
-        const j = await r.json();
-        document.getElementById('uploadMsg').textContent = j.ok ? `Ingested ${j.chunks} chunks in ${j.seconds || '?'}s` : (j.msg || 'Error');
-        refreshStats();
-      });
 
       document.getElementById('askBtn').addEventListener('click', async () => {
         const q = document.getElementById('q').value.trim();

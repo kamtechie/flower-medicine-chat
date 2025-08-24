@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Flower Medicine Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 760px; margin: 20px auto; padding: 0 12px; }
+      pre { white-space: pre-wrap; background: #f6f6f6; padding: 10px; border-radius: 6px; }
+      .muted { color: #555; }
+      .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Flower Medicine Admin</h1>
+
+    <section>
+      <h3>Upload a PDF</h3>
+      <form id="uploadForm">
+        <input type="file" id="pdf" accept="application/pdf" required />
+        <button type="submit">Ingest PDF</button>
+      </form>
+      <p id="uploadMsg" class="muted"></p>
+    </section>
+
+    <script>
+      async function refreshStats() {
+        try {
+          const r = await fetch('/stats'); const j = await r.json();
+          document.getElementById('uploadMsg').textContent = `(${j.count} chunks indexed)`;
+        } catch { /* ignore */ }
+      }
+      refreshStats();
+
+      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('pdf').files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append('file', file);
+        const r = await fetch('/ingest/pdf', { method: 'POST', body: fd });
+        const j = await r.json();
+        document.getElementById('uploadMsg').textContent = j.ok ? `Ingested ${j.chunks} chunks in ${j.seconds || '?'}s` : (j.msg || 'Error');
+        refreshStats();
+      });
+    </script>
+  </body>
+</html>
