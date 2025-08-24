@@ -18,10 +18,6 @@ chroma/
 .DS_Store
 Thumbs.db
 
-# IDE-specific files
-.vscode/
-.idea/
-
 # Dependency directories
 node_modules/
 

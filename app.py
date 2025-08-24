@@ -213,7 +213,7 @@ def _build_prompt(question: str, contexts: List[Dict[str, Any]]) -> str:
 @app.post("/ask", response_model=AskOut)
 def ask(payload: AskIn):
     k = payload.k or TOP_K
-    res = coll.query(query_texts=[payload.question], n_results=k, where=payload.where or {})
+    res = coll.query(query_texts=[payload.question], n_results=k, where=payload.where or None)
     docs = res.get("documents", [[]])[0]
     metas = res.get("metadatas", [[]])[0]
 
