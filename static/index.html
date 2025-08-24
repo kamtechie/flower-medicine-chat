@@ -32,30 +32,9 @@
       <div id="answer"></div>
     </section>
 
+    <script src="/static/flower-medicine-ui.js"></script>
     <script>
-      async function refreshStats() {
-        try {
-          const r = await fetch('/stats'); const j = await r.json();
-          document.getElementById('stats').textContent = `(${j.count} chunks indexed)`;
-        } catch { /* ignore */ }
-      }
-      refreshStats();
-
-      document.getElementById('askBtn').addEventListener('click', async () => {
-        const q = document.getElementById('q').value.trim();
-        if (!q) return;
-        document.getElementById('answer').innerHTML = '<p class="muted">Thinking…</p>';
-        const r = await fetch('/ask', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ question: q })
-        });
-        const j = await r.json();
-        const cites = (j.citations || []).map(c => `[${c.n}] ${c.source}`).join('\n');
-        document.getElementById('answer').innerHTML =
-          `<h4>Answer</h4><pre>${j.answer || ''}</pre>` +
-          (cites ? `<h4>Citations</h4><pre>${cites}</pre>` : '');
-      });
+      setupAskUI();
     </script>
   </body>
 </html>

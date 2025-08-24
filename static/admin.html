@@ -23,26 +23,9 @@
       <p id="uploadMsg" class="muted"></p>
     </section>
 
+    <script src="/static/flower-medicine-ui.js"></script>
     <script>
-      async function refreshStats() {
-        try {
-          const r = await fetch('/stats'); const j = await r.json();
-          document.getElementById('uploadMsg').textContent = `(${j.count} chunks indexed)`;
-        } catch { /* ignore */ }
-      }
-      refreshStats();
-
-      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const file = document.getElementById('pdf').files[0];
-        if (!file) return;
-        const fd = new FormData();
-        fd.append('file', file);
-        const r = await fetch('/ingest/pdf', { method: 'POST', body: fd });
-        const j = await r.json();
-        document.getElementById('uploadMsg').textContent = j.ok ? `Ingested ${j.chunks} chunks in ${j.seconds || '?'}s` : (j.msg || 'Error');
-        refreshStats();
-      });
+      setupIngestUI();
     </script>
   </body>
 </html>
