@@ -5,7 +5,6 @@
       "name": "Debug Flower Medicine App",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/app.py",
       "module": "uvicorn",
       "args": [
         "app:app",

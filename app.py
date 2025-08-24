@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-import chromadb
+from chromadb import PersistentClient
 from chromadb.config import Settings
 from pydantic import BaseModel
 
@@ -38,7 +38,7 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "250"))
 
 # ---------- Clients ----------
 oa = OpenAI()  # needs OPENAI_API_KEY in env
-chroma = chromadb.Client(Settings(persist_directory=CHROMA_DIR, anonymized_telemetry=False))
+chroma = PersistentClient(path="./chroma")
 coll = chroma.get_or_create_collection(
     name=COLLECTION_NAME,
     metadata={"hnsw:space": "cosine"}
@@ -213,7 +213,8 @@ def _build_prompt(question: str, contexts: List[Dict[str, Any]]) -> str:
 @app.post("/ask", response_model=AskOut)
 def ask(payload: AskIn):
     k = payload.k or TOP_K
-    res = coll.query(query_texts=[payload.question], n_results=k, where=payload.where or None)
+    qvec = _embed([payload.question])[0]
+    res = coll.query(query_embeddings=[qvec], n_results=k, where=payload.where or None)
     docs = res.get("documents", [[]])[0]
     metas = res.get("metadatas", [[]])[0]
 
