@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
-import Stats from "./Stats.tsx";
 import { Button } from "./ui/button.tsx";
 import { Textarea } from "./ui/textarea.tsx";
+import { Card } from "./ui/card.tsx";
 
 type Citation = { n: string; source: string };
 
@@ -32,37 +32,36 @@ export default function Ask() {
 
   return (
     <section>
-      <div class="row">
-        <h3>Ask a question</h3>
-        <Stats />
-      </div>
-      <div className="grid w-full gap-2">
+      <div className="grid gap-2">
         <Textarea
           value={question}
           onInput={(e) => setQuestion((e.target as HTMLTextAreaElement).value)}
-          placeholder="e.g., What are the indications for Rescue Remedy?"
+          placeholder='Ask a question - e.g. "what are the indications for Rescue Remedy?"'
           disabled={loading}
         />
         <Button onClick={ask} disabled={loading}>
           Send message
         </Button>
       </div>
-      <div id="answer">
-        {loading && <p className="muted">{status}</p>}
-        {answer && (
-          <>
-            <h4>Answer</h4>
-            <pre>{answer}</pre>
-          </>
-        )}
-        {citations.length > 0 && (
-          <>
-            <h4>Citations</h4>
-            <pre>
-              {citations.map((c) => `[${c.n}] ${c.source}`).join("\n")}
-            </pre>
-          </>
-        )}
+      <div id="answer" className="mt-4">
+        <Card className="border-2">
+          <div className="p-4">
+            {loading && <p className="muted">{status}</p>}
+            {answer && (
+              <>
+                <pre className="whitespace-pre-wrap mb-2">{answer}</pre>
+              </>
+            )}
+            {citations.length > 0 && (
+              <>
+                <h4 className="font-semibold mb-2">Citations</h4>
+                <pre className="whitespace-pre-wrap">
+                  {citations.map((c) => `[${c.n}] ${c.source}`).join("\n")}
+                </pre>
+              </>
+            )}
+          </div>
+        </Card>
       </div>
     </section>
   );
