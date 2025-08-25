@@ -24,3 +24,5 @@ node_modules/
 # Docker-related files
 *.tar
 *.pid
+
+static/preact
