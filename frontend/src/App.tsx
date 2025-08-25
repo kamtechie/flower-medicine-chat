@@ -7,7 +7,7 @@ import { LocationProvider } from "preact-iso";
 export function App() {
   return (
     <main className="flex flex-col min-h-screen px-4 items-center justify-center">
-      <div className="mb-6 flex flex-col items-center">
+      <div className="my-3 flex flex-col items-center">
         <h2 className="text-3xl font-bold drop-shadow-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
           Flower Medicine Q&amp;A
         </h2>
