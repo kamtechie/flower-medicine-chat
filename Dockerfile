@@ -42,4 +42,4 @@ HEALTHCHECK CMD curl --fail http://localhost:8000/stats || exit 1
 # USER appuser
 
 # Run
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
