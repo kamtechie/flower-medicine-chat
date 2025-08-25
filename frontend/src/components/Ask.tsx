@@ -1,8 +1,9 @@
 import { useState } from "preact/hooks";
 import { Button } from "./ui/button.tsx";
 import { Textarea } from "./ui/textarea.tsx";
-import { Card } from "./ui/card.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Loader2Icon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 type Citation = { n: string; source: string };
 
@@ -46,26 +47,41 @@ export default function Ask() {
           disabled={askButtonDisabled()}
           className="w-full py-6 text-lg font-semibold flex items-center justify-center gap-2"
         >
-          {loading && <Loader2Icon className="animate-spin" />}
+          {loading ? ((<Loader2Icon className="animate-spin" />) as any) : null}
           {loading ? "Loading..." : "Ask"}
         </Button>
       </div>
       <div id="answer" className="mt-4">
-        {answer && (
-            <Card className="border-2 transition-all duration-500 ease-out transform opacity-100 translate-y-0 animate-slideup">
-            <div className="p-4">
-              <pre className="whitespace-pre-wrap mb-2">{answer}</pre>
-              {citations.length > 0 && (
-                <>
-                  <h4 className="font-semibold mb-2">Citations</h4>
-                  <pre className="whitespace-pre-wrap">
-                    {citations.map((c) => `[${c.n}] ${c.source}`).join("\n")}
-                  </pre>
-                </>
-              )}
+        {answer ? (
+          <Card className="border-2 transition-all duration-500 ease-out transform opacity-100 translate-y-0 animate-slideup mb-4">
+            <div className="px-4">
+              <p className="whitespace-pre-wrap mb-2">
+                <ReactMarkdown>{answer}</ReactMarkdown>
+              </p>
             </div>
           </Card>
-        )}
+        ) : null}
+        {citations.length ? (
+          <Card className="w-full mb-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {citations.length} citations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {citations.map((citation: Citation) => (
+                  <div key={citation.n} className="flex gap-3 py-2">
+                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
+                      [{citation.n}]
+                    </span>
+                    <p className="text-sm leading-relaxed text-foreground break-words">{citation.source}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </section>
   );
