@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from chromadb import PersistentClient
-from chromadb.config import Settings
 from pydantic import BaseModel
 
 from pypdf import PdfReader
@@ -39,7 +38,8 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "250"))
 
 # ---------- Clients ----------
 oa = OpenAI()  # needs OPENAI_API_KEY in env
-chroma = PersistentClient(path="./chroma")
+chroma = PersistentClient(path=CHROMA_DIR)
+logger.info("Chroma persistence directory: %s", CHROMA_DIR)
 coll = chroma.get_or_create_collection(
     name=COLLECTION_NAME,
     metadata={"hnsw:space": "cosine"}
@@ -230,6 +230,9 @@ def stats():
         cnt = -1
     return {"collection": COLLECTION_NAME, "count": cnt, "persist_directory": CHROMA_DIR}
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 # ---------- Retrieval + Answer ----------
 SYSTEM_PROMPT = (
