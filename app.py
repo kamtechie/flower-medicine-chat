@@ -294,12 +294,10 @@ def ask(payload: AskIn):
 # ---------- Root: serve the barebones UI ----------
 @app.get("/", response_class=HTMLResponse)
 def root():
-    with open("static/index.html", "r", encoding="utf-8") as f:
+    with open("static/preact/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-
-# ---------- Admin route: serve the ingest UI ----------
 @app.get("/admin", response_class=HTMLResponse)
 def admin():
-    with open("static/admin.html", "r", encoding="utf-8") as f:
+    with open("static/preact/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
