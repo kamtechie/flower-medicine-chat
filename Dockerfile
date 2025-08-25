@@ -23,7 +23,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App files
 COPY app.py ./app.py
 RUN mkdir -p /app/static
-COPY static ./static
 
 # Copy built frontend from previous stage
 COPY --from=frontend-build /app/static/preact ./static/preact
