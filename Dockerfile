@@ -30,6 +30,7 @@ COPY --from=frontend-build /app/static/preact ./static/preact
 # Chroma persistence directory
 RUN mkdir -p /app/chroma
 VOLUME ["/app/chroma"]
+ENV CHROMA_DIR=/app/chroma
 
 EXPOSE 8000
 
