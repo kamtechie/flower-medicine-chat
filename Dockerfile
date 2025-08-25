@@ -20,8 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+
 # App files
-COPY app.py ./app.py
+COPY app ./app
 RUN mkdir -p /app/static
 
 # Copy built frontend from previous stage
