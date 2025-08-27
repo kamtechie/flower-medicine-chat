@@ -6,7 +6,7 @@ from .ingest import router as ingest_router
 from .retrieval import router as retrieval_router
 from .health import router as health_router
 
-app = FastAPI(title="Flower Medicine RAG (Chroma + FastAPI)")
+app = FastAPI(title="Zenji RAG (Chroma + FastAPI)")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],

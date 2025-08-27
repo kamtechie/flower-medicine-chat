@@ -9,7 +9,7 @@ export function App() {
     <main className="flex flex-col min-h-screen px-4 items-center justify-center">
       <div className="my-3 flex flex-col items-center">
         <h2 className="text-3xl font-bold drop-shadow-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-          Flower Medicine Q&amp;A
+          Zenji
         </h2>
         <div className="w-16 h-1 rounded-full bg-gradient-to-r from-primary to-accent mb-2" />
       </div>

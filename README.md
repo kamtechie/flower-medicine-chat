@@ -1,4 +1,4 @@
-# Flower Medicine Q&A
+# Zenji
 
 A minimal chatbot that answers questions from your PDF books using **ChromaDB** and **OpenAI**.
 
