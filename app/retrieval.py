@@ -11,8 +11,7 @@ router = APIRouter()
 SYSTEM_PROMPT = (
     "You are Zenji, a careful assistant answering only from provided context about flower medicine "
     "and related material. If the answer is not in the context, say you don't know. "
-    "Never provide diagnosis or treatment. Include concise citations like [1], [2] "
-    "that map to sources. If health/contraindications appear, add a one-line disclaimer."
+    "Never provide diagnosis or treatment. If health/contraindications appear, add a one-line disclaimer."
 )
 
 def _get_token_count(text: str) -> int:
@@ -45,20 +44,19 @@ def _embed(texts, oa):
     return out
 
 def _build_prompt(question: str, contexts):
-    numbered_sections = []
-    for i, c in enumerate(contexts, start=1):
+    sections = []
+    for c in contexts:
         meta = c.get("metadata", {})
         src = meta.get("source", "unknown")
         page = meta.get("page", None)
         where = f"{src}" + (f", p.{page}" if page else "")
-        numbered_sections.append(f"[{i}] {c['text']}\n(Source: {where})")
-    ctx = "\n\n".join(numbered_sections)
+        sections.append(f"{c['text']}\n(Source: {where})")
+    ctx = "\n\n".join(sections)
     return (
         f"Answer the question using ONLY the context.\n\n"
         f"Question: {question}\n\n"
         f"Context:\n{ctx}\n\n"
         f"Instructions:\n"
-        f"- Cite passages with [n] where n corresponds to the sources list above.\n"
         f"- If uncertain, say you don't know from these documents.\n"
         f"- Add a one-line disclaimer if health/contraindications are discussed.\n\n"
         f"Answer:\n"
@@ -83,7 +81,7 @@ def ask(payload: AskIn):
 
     contexts = [{"text": d, "metadata": m} for d, m in zip(docs, metas)]
     if not contexts:
-        return AskOut(answer="I couldn't find anything in the current index.", citations=[])
+        return AskOut(answer="I couldn't find anything in the current index.")
 
     prompt = _build_prompt(payload.question, contexts)
 
@@ -101,10 +99,4 @@ def ask(payload: AskIn):
         logger.error(f"Chat completion failed: {e}")
         raise HTTPException(status_code=500, detail="Chat completion failed.")
 
-    citations = []
-    for i, m in enumerate(metas, start=1):
-        src = m.get("source", "unknown")
-        page = m.get("page")
-        citations.append({"n": str(i), "source": f"{src}" + (f", p.{page}" if page else "")})
-
-    return AskOut(answer=answer, citations=citations)
+    return AskOut(answer=answer)

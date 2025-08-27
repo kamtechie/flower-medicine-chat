@@ -1,25 +1,21 @@
 import { useState } from "preact/hooks";
 import { Button } from "./ui/button.tsx";
 import { Textarea } from "./ui/textarea.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
+import { Card } from "./ui/card.tsx";
 import { Loader2Icon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast, Toaster } from "sonner";
-
-type Citation = { n: string; source: string };
 
 export default function Ask() {
   const [question, setQuestion] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [answer, setAnswer] = useState<string>("");
-  const [citations, setCitations] = useState<Citation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   async function ask() {
     if (!question.trim()) return;
-    setLoading(true);
-    setAnswer("");
-    setCitations([]);
+  setLoading(true);
+  setAnswer("");
     try {
       const r = await fetch("/ask", {
         method: "POST",
@@ -39,12 +35,10 @@ export default function Ask() {
         setLoading(false);
         return;
       }
-      const j = await r.json();
-      setAnswer(j.answer || "");
-      setCitations(j.citations || []);
+  const j = await r.json();
+  setAnswer(j.answer || "");
     } catch (err) {
       toast("Network error or server unavailable.");
-      setCitations([]);
     } finally {
       setLoading(false);
     }
@@ -80,29 +74,6 @@ export default function Ask() {
                 <ReactMarkdown>{answer}</ReactMarkdown>
               </p>
             </div>
-          </Card>
-        ) : null}
-        {citations.length ? (
-          <Card className="w-full mb-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {citations.length} citations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {citations.map((citation: Citation) => (
-                  <div key={citation.n} className="flex gap-3 py-2">
-                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
-                      [{citation.n}]
-                    </span>
-                    <p className="text-sm leading-relaxed text-foreground break-words">
-                      {citation.source}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
           </Card>
         ) : null}
       </div>

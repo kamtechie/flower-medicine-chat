@@ -8,4 +8,3 @@ class AskIn(BaseModel):
 
 class AskOut(BaseModel):
     answer: str
-    citations: List[Dict[str, str]]
