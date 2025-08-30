@@ -1,9 +1,10 @@
 from chromadb import PersistentClient
-from .config import CHROMA_DIR, COLLECTION_NAME, logger
+from app.settings import settings
+from app.services.logger import LoggerService
 
-chroma = PersistentClient(path=CHROMA_DIR)
-logger.info("Chroma persistence directory: %s", CHROMA_DIR)
+chroma = PersistentClient(path=settings.CHROMA_DIR)
+LoggerService().info(f"Chroma persistence directory: {settings.CHROMA_DIR}")
 coll = chroma.get_or_create_collection(
-    name=COLLECTION_NAME,
+    name=settings.COLLECTION_NAME,
     metadata={"hnsw:space": "cosine"}
 )

@@ -1,5 +1,5 @@
 from app.prompts.recommender import RECOMMENDER_SYSTEM
-from app.config import TOP_K, OPENAI_CHAT_MODEL
+from app.settings import settings
 
 class Recommender:
     def __init__(self, oa, model: str, retriever):
@@ -8,7 +8,7 @@ class Recommender:
         self.retriever = retriever
 
     def recommend(self, summary: str, k: int = 12) -> str:
-        ctx = self.retriever.retrieve(summary, k=min(TOP_K*2, k))
+        ctx = self.retriever.retrieve(summary, k=min(settings.TOP_K*2, k))
         ctx_text = "\n\n".join([
             f"{c['text']}\n(Source: {c['meta'].get('source','')}{', p.'+str(c['meta'].get('page')) if c['meta'].get('page') else ''})"
             for c in ctx

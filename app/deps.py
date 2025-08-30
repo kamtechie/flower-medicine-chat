@@ -1,6 +1,6 @@
 from fastapi import Depends
 from openai import OpenAI
-from .config import OPENAI_CHAT_MODEL
+from app.settings import settings
 from .chroma import coll
 from app.services.planner import Planner
 from app.services.recommender import Recommender
@@ -16,7 +16,7 @@ def get_retriever():
     return Retriever(coll)
 
 def get_planner(oa=Depends(get_oa)):
-    return Planner(oa, OPENAI_CHAT_MODEL)
+    return Planner(oa, settings.OPENAI_CHAT_MODEL)
 
 def get_recommender(oa=Depends(get_oa), retriever=Depends(get_retriever)):
-    return Recommender(oa, OPENAI_CHAT_MODEL, retriever)
+    return Recommender(oa, settings.OPENAI_CHAT_MODEL, retriever)

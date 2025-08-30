@@ -2,9 +2,9 @@
 from fastapi import APIRouter, HTTPException
 from .models import AskIn, AskOut
 from .chroma import coll
-from .config import TOP_K, OPENAI_EMBED_MODEL, OPENAI_CHAT_MODEL
+from app.settings import settings
 from fastapi import Depends
-from app.deps import get_logger, get_oa, get_retriever
+from app.deps import get_logger, get_oa
 from app.services.logger import LoggerService
 from openai import OpenAI
 import tiktoken
@@ -14,7 +14,7 @@ router = APIRouter()
 from app.prompts.retrieval import RETRIEVAL_SYSTEM_PROMPT
 
 def _get_token_count(text: str) -> int:
-    enc = tiktoken.encoding_for_model(OPENAI_EMBED_MODEL)
+    enc = tiktoken.encoding_for_model(settings.OPENAI_EMBED_MODEL)
     return len(enc.encode(text))
 
 def _embed(texts, oa, logger=None):
@@ -35,7 +35,7 @@ def _embed(texts, oa, logger=None):
     out = []
     for batch in batches:
         try:
-            resp = oa.embeddings.create(model=OPENAI_EMBED_MODEL, input=batch)
+            resp = oa.embeddings.create(model=settings.OPENAI_EMBED_MODEL, input=batch)
             out.extend([d.embedding for d in resp.data])
         except Exception as e:
             if logger:
@@ -69,7 +69,7 @@ def ask(
     logger: LoggerService = Depends(get_logger),
     oa: OpenAI = Depends(get_oa),
 ):
-    k = payload.k or TOP_K
+    k = payload.k or settings.TOP_K
     try:
         qvecs = _embed([payload.question], oa, logger)
         if not qvecs:
@@ -90,7 +90,7 @@ def ask(
 
     try:
         chat = oa.chat.completions.create(
-            model=OPENAI_CHAT_MODEL,
+            model=settings.OPENAI_CHAT_MODEL,
             temperature=0.1,
             messages=[
                 {"role": "system", "content": RETRIEVAL_SYSTEM_PROMPT},
