@@ -9,6 +9,7 @@ from .dialog_models import SessionState, DialogAction
 from .chroma import coll
 from .config import OPENAI_CHAT_MODEL, TOP_K, logger
 from openai import OpenAI
+import time
 
 router = APIRouter()
 
@@ -126,13 +127,14 @@ def _plan_next(state: SessionState, user_msg: str) -> DialogAction:
         {"role":"user","content":f"Session so far: {state.model_dump_json()}"},
         {"role":"user","content":user_msg},
     ]
-    resp = oa.responses.create(
+    start_time = time.time()
+    resp = oa.responses.parse(
         model=OPENAI_CHAT_MODEL,
-        text={
-            "format": {"type": "json_object"}
-        },
+        text_format=DialogAction,
         input=msgs,
     )
+    elapsed = time.time() - start_time
+    logger.info(f"OpenAI planner request took {elapsed:.2f} seconds")
     try:
         return DialogAction.model_validate_json(resp.output_text)
     except Exception as e:
@@ -170,10 +172,13 @@ def _recommend_text(user_summary: str, ctx: List[Dict[str, Any]]) -> str:
     ctx_text = "\n\n".join(parts[:12])
 
     prompt = f"User summary: {user_summary}\n\nContext passages:\n{ctx_text}\n\nNow produce recommendations as per the system format."
+    start_time = time.time()
     response = oa.responses.create(
         model=OPENAI_CHAT_MODEL,
         input=[{"role":"system","content":RECOMMENDER_SYSTEM},{"role":"user","content":prompt}],
     )
+    elapsed = time.time() - start_time
+    logger.info(f"OpenAI recommender request took {elapsed:.2f} seconds")
     return response.output_text
 
 @router.post("/chat", response_model=ChatOut)
