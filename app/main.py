@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from .ingest import router as ingest_router
 from .retrieval import router as retrieval_router
 from .health import router as health_router
+from .dialog import router as dialog_router
 
 app = FastAPI(title="Zenji RAG (Chroma + FastAPI)")
 app.add_middleware(
@@ -17,6 +18,7 @@ app.mount("/assets", StaticFiles(directory="static/preact/assets"), name="assets
 app.include_router(ingest_router)
 app.include_router(retrieval_router)
 app.include_router(health_router)
+app.include_router(dialog_router)
 
 @app.get("/", response_class=HTMLResponse)
 def root():
