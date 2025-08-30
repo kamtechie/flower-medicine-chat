@@ -13,10 +13,12 @@ from app.deps import get_planner, get_recommender, get_logger
 from app.services.planner import Planner
 from app.services.recommender import Recommender
 from app.services.logger import LoggerService
+from app.sessions_memory import MemoryStore
 
 router = APIRouter()
 
-SESSIONS: dict[str, SessionState] = {}
+
+session_store = MemoryStore()
 
 
 
@@ -27,9 +29,8 @@ class StartOut(BaseModel):
 
 @router.post("/session", response_model=StartOut)
 def create_session():
-    sid = str(uuid.uuid4())
-    SESSIONS[sid] = SessionState()
-    return StartOut(session_id=sid, message="Hi—how can I help today? In a few words, how do you feel?")
+    sid = session_store.new()
+    return StartOut(session_id=sid, message="Hi—how can I help today? In a few words, how do you feel.")
 
 class ChatIn(BaseModel):
     session_id: str
@@ -69,7 +70,7 @@ def chat_step(
     logger: LoggerService = Depends(get_logger),
 ):
     sid = payload.session_id
-    state = SESSIONS.get(sid)
+    state = session_store.get(sid)
     if not state:
         raise HTTPException(status_code=400, detail="invalid session_id")
 
@@ -84,30 +85,36 @@ def chat_step(
 
     logger.info(f"Planner action: {action.model_dump()}")
     _update_session_state(state, action)
+    session_store.set(sid, state)
 
     if action.safety in ("crisis","medical"):
         text = ("I'm concerned by what you shared. I can't provide recommendations in potential crisis situations. "
                 "Please consider reaching out to a trusted person or local professional support. "
                 "If you're in immediate danger, contact local emergency services.")
         state.turns.append({"role":"assistant","content":text})
+        session_store.set(sid, state)
         return ChatOut(reply=text, stage="end")
 
     if action.stage in ("ask_feelings","ask_context","ask_duration"):
         question = action.next_question or "Could you tell me a bit more?"
         state.turns.append({"role":"assistant","content":question})
+        session_store.set(sid, state)
         return ChatOut(reply=question, stage=action.stage)
 
     if action.stage == "confirm":
         question = action.next_question or (action.summary or "Shall I suggest a few essences?")
         state.turns.append({"role":"assistant","content":question})
+        session_store.set(sid, state)
         return ChatOut(reply=question, stage="confirm")
 
     if action.stage in ("recommend","end"):
         summary = action.summary or "feelings and context as discussed"
         text = action.recommendation_text or recommender.recommend(summary)
         state.turns.append({"role":"assistant","content":text})
+        session_store.set(sid, state)
         return ChatOut(reply=text, stage="recommend")
 
     question = action.next_question or "How are you feeling right now?"
     state.turns.append({"role":"assistant","content":question})
+    session_store.set(sid, state)
     return ChatOut(reply=question, stage=action.stage)
