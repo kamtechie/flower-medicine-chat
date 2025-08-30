@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Dict, Any
-from app.settings import settings
+from app.core.settings import settings
 import tiktoken
 
 def _chunk_text(text: str, source_meta: Dict[str, Any]) -> List[Dict[str, Any]]:

@@ -1,4 +1,4 @@
-from app.dialog_models import DialogAction, SessionState
+from app.models.dialog_models import DialogAction, SessionState
 from app.prompts.planner import PLANNER_SYSTEM, PLANNER_FEWSHOT
 from pydantic import ValidationError
 

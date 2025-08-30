@@ -1,5 +1,5 @@
 from app.prompts.recommender import RECOMMENDER_SYSTEM
-from app.settings import settings
+from app.core.settings import settings
 
 class Recommender:
     def __init__(self, oa, model: str, retriever):

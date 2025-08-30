@@ -1,6 +1,6 @@
 import uuid
-from app.dialog_models import SessionState
-from app.sessions import SessionStore
+from app.models.dialog_models import SessionState
+from app.sessions.sessions import SessionStore
 
 class MemoryStore(SessionStore):
     _db: dict[str, SessionState] = {}

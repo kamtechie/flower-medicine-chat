@@ -1,5 +1,5 @@
 from chromadb import PersistentClient
-from app.settings import settings
+from app.core.settings import settings
 from app.services.logger import LoggerService
 
 chroma = PersistentClient(path=settings.CHROMA_DIR)

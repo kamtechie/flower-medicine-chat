@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     TOP_K: int = 8
     CHUNK_CHARS: int = 1800
     CHUNK_OVERLAP: int = 250
+    OPENAI_API_KEY: str = ""
+    LOG_LEVEL: str = "INFO"
 
     model_config = {
         "env_file": ".env"

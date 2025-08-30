@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from .ingest import router as ingest_router
-from .retrieval import router as retrieval_router
-from .health import router as health_router
-from .dialog import router as dialog_router
+from app.api.ingest import router as ingest_router
+from app.api.retrieval import router as retrieval_router
+from app.api.health import router as health_router
+from app.api.dialog import router as dialog_router
 
 app = FastAPI(title="Zenji RAG (Chroma + FastAPI)")
 app.add_middleware(

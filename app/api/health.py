@@ -1,7 +1,6 @@
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from .chroma import coll
-from app.settings import settings
+from app.chroma import coll
+from app.core.settings import settings
 from fastapi import Depends
 
 router = APIRouter()

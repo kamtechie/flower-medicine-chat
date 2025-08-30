@@ -1,19 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-import uuid
 
-
-
-from .models.dialog_models import SessionState, DialogAction
-from .chroma import coll
-from .config import logger
-from openai import OpenAI
-import time
-from app.deps import get_planner, get_recommender, get_logger
+from app.models.dialog_models import SessionState, DialogAction
+from app.core.deps import get_planner, get_recommender, get_logger
 from app.services.planner import Planner
 from app.services.recommender import Recommender
 from app.services.logger import LoggerService
-from app.sessions_memory import MemoryStore
+from app.sessions.sessions_memory import MemoryStore
 
 router = APIRouter()
 

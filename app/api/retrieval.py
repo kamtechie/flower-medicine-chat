@@ -1,10 +1,10 @@
 
 from fastapi import APIRouter, HTTPException
-from .models import AskIn, AskOut
-from .chroma import coll
-from app.settings import settings
+from app.models.models import AskIn, AskOut
+from app.chroma import coll
+from app.core.settings import settings
 from fastapi import Depends
-from app.deps import get_logger, get_oa
+from app.core.deps import get_logger, get_oa
 from app.services.logger import LoggerService
 from openai import OpenAI
 import tiktoken

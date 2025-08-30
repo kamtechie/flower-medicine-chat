@@ -1,5 +1,5 @@
 from typing import Optional
-from app.dialog_models import SessionState
+from app.models.dialog_models import SessionState
 
 class SessionStore:
     def get(self, sid: str) -> Optional[SessionState]:

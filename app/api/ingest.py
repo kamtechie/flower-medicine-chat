@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pypdf import PdfReader
 from io import BytesIO
-from .utils import _chunk_text
-from .chroma import coll
-from app.deps import get_logger
+from app.core.utils import _chunk_text
+from app.chroma import coll
+from app.core.deps import get_logger
 from app.services.logger import LoggerService
 
 router = APIRouter()
