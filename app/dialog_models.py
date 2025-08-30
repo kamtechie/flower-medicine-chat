@@ -1,5 +1,5 @@
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
+from typing import List, Optional, Literal, ClassVar
+from pydantic import BaseModel, Field, field_validator
 
 Stage = Literal["ask_feelings", "ask_context", "ask_duration", "ask_goal","confirm", "recommend", "end"]
 Duration = Literal["acute", "persistent"]
@@ -31,3 +31,21 @@ class DialogAction(BaseModel):
 
     # Only when stage == "recommend" (optional)
     recommendation_text: Optional[str] = None
+
+    ALLOWED_SLOTS: ClassVar[set[str]] = {"feelings","context","duration","goal"}
+
+    @field_validator("needed_slots")
+    @classmethod
+    def _needed_slots_ok(cls, v):
+        bad = [s for s in v if s not in cls.ALLOWED_SLOTS]
+        if bad:
+            raise ValueError(f"Invalid needed_slots: {bad}")
+        return v
+
+    @field_validator("feelings")
+    @classmethod
+    def _feelings_norm(cls, v):
+        if v is None:
+            return v
+        v = [w.strip().lower() for w in v if w.strip()]
+        return v[:6]
