@@ -2,23 +2,22 @@
 from fastapi import APIRouter, HTTPException
 from .models import AskIn, AskOut
 from .chroma import coll
-from .config import TOP_K, OPENAI_EMBED_MODEL, OPENAI_CHAT_MODEL, logger
+from .config import TOP_K, OPENAI_EMBED_MODEL, OPENAI_CHAT_MODEL
+from fastapi import Depends
+from app.deps import get_logger, get_oa, get_retriever
+from app.services.logger import LoggerService
 from openai import OpenAI
 import tiktoken
 
 router = APIRouter()
 
-SYSTEM_PROMPT = (
-    "You are Zenji, a careful assistant answering only from provided context about flower medicine "
-    "and related material. If the answer is not in the context, say you don't know. "
-    "Never provide diagnosis or treatment. If health/contraindications appear, add a one-line disclaimer."
-)
+from app.prompts.retrieval import RETRIEVAL_SYSTEM_PROMPT
 
 def _get_token_count(text: str) -> int:
     enc = tiktoken.encoding_for_model(OPENAI_EMBED_MODEL)
     return len(enc.encode(text))
 
-def _embed(texts, oa):
+def _embed(texts, oa, logger=None):
     MAX_TOKENS = 250000
     batches = []
     current_batch = []
@@ -39,7 +38,8 @@ def _embed(texts, oa):
             resp = oa.embeddings.create(model=OPENAI_EMBED_MODEL, input=batch)
             out.extend([d.embedding for d in resp.data])
         except Exception as e:
-            logger.error(f"Embedding failed: {e}")
+            if logger:
+                logger.error(f"Embedding failed: {e}")
             raise HTTPException(status_code=500, detail="Embedding failed.")
     return out
 
@@ -64,11 +64,14 @@ def _build_prompt(question: str, contexts):
 
 # --- Route ---
 @router.post("/ask", response_model=AskOut)
-def ask(payload: AskIn):
-    oa = OpenAI()
+def ask(
+    payload: AskIn,
+    logger: LoggerService = Depends(get_logger),
+    oa: OpenAI = Depends(get_oa),
+):
     k = payload.k or TOP_K
     try:
-        qvecs = _embed([payload.question], oa)
+        qvecs = _embed([payload.question], oa, logger)
         if not qvecs:
             raise HTTPException(status_code=400, detail="Failed to embed question.")
         qvec = qvecs[0]
@@ -90,11 +93,11 @@ def ask(payload: AskIn):
             model=OPENAI_CHAT_MODEL,
             temperature=0.1,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": RETRIEVAL_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
         )
-        answer = chat.choices[0].message.content
+        answer = chat.choices[0].message.content or ""
     except Exception as e:
         logger.error(f"Chat completion failed: {e}")
         raise HTTPException(status_code=500, detail="Chat completion failed.")
