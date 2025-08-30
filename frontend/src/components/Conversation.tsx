@@ -25,7 +25,8 @@ export default function Conversation() {
   const [sessionId, setSessionId] = useState<string>("");
   const [input, setInput] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [busy, setBusy] = useState<boolean>(false);
+  const [busy, setBusy] = useState<boolean>(false); // loading state for chat messages
+  const [loading, setLoading] = useState<boolean>(true); // initial loading state for session
   const [error, setError] = useState<string>("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,17 +40,21 @@ export default function Conversation() {
       const r = await fetch("/api/session", { method: "POST" });
       if (!r.ok) {
         setError("Failed to start session.");
+        setLoading(false);
         return;
       }
       const j: SessionResponse = await r.json();
       if (j.error || !j.session_id || !j.message) {
         setError(j.error || "Invalid session response.");
+        setLoading(false);
         return;
       }
       setSessionId(j.session_id);
+      setLoading(false);
       push("bot", j.message);
     } catch (e) {
       setError("Network error starting session.");
+      setLoading(false);
     }
   }, [push]);
 
@@ -127,7 +132,12 @@ export default function Conversation() {
                   </MessageContent>
                 )}
                 {busy && isUserLatestMessage && (
-                  <p className="text-muted-foreground">Thinking...</p>
+                  <p className="text-sm pt-0.5 pl-0.5 text-muted-foreground">
+                    Thinking...
+                  </p>
+                )}
+                {error && isUserLatestMessage && (
+                  <p className="text-sm pt-0.5 pl-0.5 text-red-500">{error}</p>
                 )}
               </div>
             </Message>
@@ -138,11 +148,26 @@ export default function Conversation() {
     );
   }
 
+  function InitialLoader() {
+    if (!loading && !sessionId && error)
+      return (
+        <div className="flex items-center justify-center text-red-500">
+          {error}
+        </div>
+      );
+    else
+      return <div className="flex items-center justify-center">Loading...</div>;
+  }
+
   return (
-    <div className="flex flex-col overflow-hidden flex-1">
+    <div className="flex flex-col overflow-hidden flex-1 w-full max-w-(--breakpoint-md)">
       <ChatContainerRoot className="relative flex-1">
         <ChatContainerContent className="space-y-4 p-4">
-          <MessageList messages={messages} busy={busy} />
+          {loading || !sessionId ? (
+            <InitialLoader />
+          ) : (
+            <MessageList messages={messages} busy={busy} />
+          )}
         </ChatContainerContent>
       </ChatContainerRoot>
       <div className="flex gap-2 mt-2">
@@ -153,7 +178,10 @@ export default function Conversation() {
           onSubmit={send}
           className="inset-x-0 bottom-0 mx-auto w-full max-w-(--breakpoint-md)"
         >
-          <PromptInputTextarea placeholder="Type a message" disabled={busy} />
+          <PromptInputTextarea
+            placeholder="Type a message"
+            disabled={busy || !sessionId}
+          />
           <PromptInputActions className="justify-end pt-2">
             <PromptInputAction
               tooltip={busy ? "Stop generation" : "Send message"}
@@ -171,13 +199,9 @@ export default function Conversation() {
           </PromptInputActions>
         </PromptInput>
       </div>
-      {error && (
-        <p className="text-xs text-red-500 text-center my-1">{error}</p>
-      )}
       <p className="text-xs text-muted-foreground text-center my-1">
         Note: educational only; not medical advice.
       </p>
-      {!sessionId && <button onClick={start}>Start new session</button>}
     </div>
   );
 }
