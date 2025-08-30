@@ -5,7 +5,7 @@ import Ingest from './components/Ingest.tsx';
 function App() {
   return (
     <BrowserRouter>
-      <main className="flex flex-col h-screen">
+      <main className="flex flex-col h-dvh">
         <header className="w-full border-b-primary border-2 py-2 px-2">
           <h3 className="text-xl font-bold text-primary">Zenji</h3>
         </header>
