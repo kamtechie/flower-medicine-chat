@@ -25,4 +25,4 @@ node_modules/
 *.tar
 *.pid
 
-static/preact
+static/

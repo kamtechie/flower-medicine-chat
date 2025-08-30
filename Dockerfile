@@ -26,7 +26,7 @@ COPY app ./app
 RUN mkdir -p /app/static
 
 # Copy built frontend from previous stage
-COPY --from=frontend-build /app/static/preact ./static/preact
+COPY --from=frontend-build /app/static ./static
 
 # Chroma persistence directory
 RUN mkdir -p /app/chroma
@@ -36,7 +36,7 @@ ENV CHROMA_DIR=/app/chroma
 EXPOSE 8000
 
 # Healthcheck (simple)
-HEALTHCHECK CMD curl --fail http://localhost:8000/stats || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8000/api/stats || exit 1
 
 # Optional: Use a non-root user for security
 # RUN useradd -m appuser && chown -R appuser /app

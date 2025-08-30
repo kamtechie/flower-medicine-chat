@@ -1,26 +1,23 @@
-import { h } from "preact";
-import { Router, Route } from "preact-iso/router";
-import Ask from "./components/Ask.tsx";
-import Ingest from "./components/Ingest.tsx";
-import { LocationProvider } from "preact-iso";
+import { BrowserRouter, Route, Routes } from "react-router";
+import Conversation from './components/Conversation.tsx';
+import Ingest from './components/Ingest.tsx';
 
-export function App() {
+function App() {
   return (
-    <main className="flex flex-col min-h-screen px-4 items-center justify-center">
-      <div className="my-3 flex flex-col items-center">
-        <h2 className="text-3xl font-bold drop-shadow-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-          Zenji
-        </h2>
-        <div className="w-16 h-1 rounded-full bg-gradient-to-r from-primary to-accent mb-2" />
-      </div>
-      <div className="w-full max-w-[900px]">
-        <LocationProvider>
-          <Router>
-            <Route path="/" component={Ask} />
-            <Route path="/admin" component={Ingest} />
-          </Router>
-        </LocationProvider>
-      </div>
-    </main>
-  );
+    <BrowserRouter>
+      <main className="flex flex-col h-screen">
+        <header className="w-full border-b-primary border-2 py-2 px-2">
+          <h3 className="text-xl font-bold text-primary">Zenji</h3>
+        </header>
+        <div className="flex flex-col px-2 items-center justify-center flex-1 max-h-[95vh]">
+          <Routes>
+            <Route path="/" element={<Conversation />} />
+            <Route path="/ingest" element={<Ingest />} />
+          </Routes>
+        </div>
+      </main>
+    </BrowserRouter>
+  )
 }
+
+export default App;

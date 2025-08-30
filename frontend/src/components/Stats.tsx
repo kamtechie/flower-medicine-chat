@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect } from 'react';
 
 export default function Stats() {
   const [stats, setStats] = useState<string>('');
   useEffect(() => {
     async function fetchStats() {
       try {
-        const r = await fetch('/stats');
+        const r = await fetch('/api/stats');
         const j = await r.json();
         setStats(`(${j.count} chunks indexed)`);
-      } catch {}
+      } catch { /* empty */ }
     }
     fetchStats();
   }, []);
-  return <small class="muted">{stats}</small>;
+  return <small className="muted">{stats}</small>;
 }
