@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
+import { fetchStats } from '../lib/api';
 
 export default function Stats() {
   const [stats, setStats] = useState<string>('');
   useEffect(() => {
-    async function fetchStats() {
+    async function getStats() {
       try {
-        const r = await fetch('/api/stats');
-        const j = await r.json();
+        const j = await fetchStats();
         setStats(`(${j.count} chunks indexed)`);
       } catch { /* empty */ }
     }
-    fetchStats();
+    getStats();
   }, []);
   return <small className="muted">{stats}</small>;
 }

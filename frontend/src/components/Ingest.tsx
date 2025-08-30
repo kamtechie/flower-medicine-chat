@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import Stats from './Stats.tsx';
+import { ingestPdf } from '../lib/api';
 
 export default function Ingest() {
   const [msg, setMsg] = useState('');
@@ -12,11 +13,8 @@ export default function Ingest() {
     if (!file) return;
     setLoading(true);
     setMsg('Uploading…');
-    const fd = new FormData();
-    fd.append('file', file);
     try {
-      const r = await fetch('/api/ingest/pdf', { method: 'POST', body: fd });
-      const j = await r.json();
+      const j = await ingestPdf(file);
       setMsg(j.ok ? `Ingested ${j.chunks} chunks in ${j.seconds ?? '?'}s` : (j.msg || 'Error'));
     } catch (err) {
       setMsg('Upload failed');

@@ -1,4 +1,5 @@
 import { ArrowUp } from "lucide-react";
+import { chatStep } from '../lib/api';
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "./ui/button.tsx";
 import {
@@ -71,16 +72,7 @@ export default function Conversation() {
     push("user", text);
     setBusy(true);
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, message: text }),
-      });
-      if (!r.ok) {
-        setError("Failed to get reply.");
-        return;
-      }
-      const j: ChatOut = await r.json();
+      const j: ChatOut = await chatStep(sessionId, text);
       if (j.error) {
         setError(j.error);
         return;
