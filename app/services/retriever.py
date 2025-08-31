@@ -11,7 +11,7 @@ class Retriever:
         # res = self.coll.query(query_texts=[summary], n_results=k)
         qvecs = self.openai.embed([summary])
         if not qvecs:
-            raise HTTPException(status_code=400, detail="Failed to embed question.")
+            raise HTTPException(status_code=500, detail="Failed to embed question.")
         qvec = qvecs[0]
         res = self.coll.query(query_embeddings=[qvec], n_results=k)
         docs = res.get("documents", [[]])[0]

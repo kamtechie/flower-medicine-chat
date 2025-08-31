@@ -65,7 +65,7 @@ def chat_step(
     sid = payload.session_id
     state = session_store.get(sid)
     if not state:
-        raise HTTPException(status_code=400, detail="invalid session_id")
+        raise HTTPException(status_code=401, detail="invalid session_id")
 
     user_msg = payload.message.strip()
     state.turns.append({"role":"user","content":user_msg})

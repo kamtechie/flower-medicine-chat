@@ -1,5 +1,5 @@
 import { ArrowUp } from "lucide-react";
-import { chatStep } from '../lib/api';
+import { chatStep } from "../lib/api";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "./ui/button.tsx";
 import {
@@ -78,8 +78,10 @@ export default function Conversation() {
         return;
       }
       push("bot", j.reply || "");
-    } catch (e) {
-      setError("Network error sending message.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
     } finally {
       setBusy(false);
     }

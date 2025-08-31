@@ -73,7 +73,7 @@ def ask(
     try:
         qvecs = _embed([payload.question], openai_service, logger)
         if not qvecs:
-            raise HTTPException(status_code=400, detail="Failed to embed question.")
+            raise HTTPException(status_code=500, detail="Failed to embed question.")
         qvec = qvecs[0]
         res = coll.query(query_embeddings=[qvec], n_results=k, where=payload.where or None)
         docs = res.get("documents", [[]])[0]
