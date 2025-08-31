@@ -32,8 +32,9 @@ RUN mkdir -p /app/chroma
 VOLUME ["/app/chroma"]
 ENV CHROMA_DIR=/app/chroma
 
+ENV PORT=8000
 # Healthcheck (simple)
-HEALTHCHECK CMD curl --fail http://localhost:8000/api/stats || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:${PORT}/api/health || exit 1
 
 # Optional: Use a non-root user for security
 # RUN useradd -m appuser && chown -R appuser /app
@@ -41,5 +42,4 @@ HEALTHCHECK CMD curl --fail http://localhost:8000/api/stats || exit 1
 
 # Run
 EXPOSE 8000
-ENV PORT=8000
 ENTRYPOINT ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
