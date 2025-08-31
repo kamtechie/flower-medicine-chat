@@ -2,9 +2,11 @@ from app.models.dialog_models import DialogAction, SessionState
 from app.prompts.planner import PLANNER_SYSTEM, PLANNER_FEWSHOT
 from pydantic import ValidationError
 
+from app.services.openai import OpenAIService
+
 class Planner:
-    def __init__(self, oa, model: str):
-        self.oa = oa
+    def __init__(self, oa: OpenAIService, model: str):
+        self.openai = oa
         self.model = model
 
     def plan(self, state: SessionState, user_msg: str) -> DialogAction:
@@ -12,12 +14,12 @@ class Planner:
             {"role":"user","content":f"Session so far: {state.model_dump_json()}"},
             {"role":"user","content":user_msg},
         ]
-        resp = self.oa.responses.parse(
+        response = self.openai.response(
             model=self.model,
-            text_format=DialogAction,
+            schema=DialogAction,
             input=msgs,
         )
         try:
-            return DialogAction.model_validate_json(resp.output_text)
+            return DialogAction.model_validate_json(response)
         except ValidationError as e:
             raise ValueError(f"Planner JSON parse failed: {e}")

@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     OPENAI_EMBED_MODEL: str = "text-embedding-3-small"
-    OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
+    OPENAI_CHAT_MODEL: str = "gpt-5-nano"
     CHROMA_DIR: str = "./chroma"
     COLLECTION_NAME: str = "flower_medicine"
     TOP_K: int = 8

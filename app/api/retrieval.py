@@ -1,23 +1,22 @@
-
 from fastapi import APIRouter, HTTPException
 from app.models.models import AskIn, AskOut
 from app.chroma import coll
 from app.core.settings import settings
 from fastapi import Depends
-from app.core.deps import get_logger, get_oa
+from app.core.deps import get_logger, get_openai_service, get_retriever
 from app.services.logger import LoggerService
-from openai import OpenAI
 import tiktoken
+from app.services.openai import OpenAIService
+from app.services.retriever import Retriever
 
 router = APIRouter()
-
 from app.prompts.retrieval import RETRIEVAL_SYSTEM_PROMPT
 
 def _get_token_count(text: str) -> int:
     enc = tiktoken.encoding_for_model(settings.OPENAI_EMBED_MODEL)
     return len(enc.encode(text))
 
-def _embed(texts, oa, logger=None):
+def _embed(texts, openai_service: OpenAIService, logger=None):
     MAX_TOKENS = 250000
     batches = []
     current_batch = []
@@ -35,8 +34,8 @@ def _embed(texts, oa, logger=None):
     out = []
     for batch in batches:
         try:
-            resp = oa.embeddings.create(model=settings.OPENAI_EMBED_MODEL, input=batch)
-            out.extend([d.embedding for d in resp.data])
+            embeddings = openai_service.embed(batch)
+            out.extend(embeddings)
         except Exception as e:
             if logger:
                 logger.error(f"Embedding failed: {e}")
@@ -67,11 +66,12 @@ def _build_prompt(question: str, contexts):
 def ask(
     payload: AskIn,
     logger: LoggerService = Depends(get_logger),
-    oa: OpenAI = Depends(get_oa),
+    openai_service: OpenAIService = Depends(get_openai_service),
+    retriever: Retriever = Depends(get_retriever)
 ):
     k = payload.k or settings.TOP_K
     try:
-        qvecs = _embed([payload.question], oa, logger)
+        qvecs = _embed([payload.question], openai_service, logger)
         if not qvecs:
             raise HTTPException(status_code=400, detail="Failed to embed question.")
         qvec = qvecs[0]
@@ -89,15 +89,14 @@ def ask(
     prompt = _build_prompt(payload.question, contexts)
 
     try:
-        chat = oa.chat.completions.create(
-            model=settings.OPENAI_CHAT_MODEL,
-            temperature=0.1,
+        answer = openai_service.chat(
             messages=[
                 {"role": "system", "content": RETRIEVAL_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
+            model=settings.OPENAI_CHAT_MODEL,
+            temperature=0.1,
         )
-        answer = chat.choices[0].message.content or ""
     except Exception as e:
         logger.error(f"Chat completion failed: {e}")
         raise HTTPException(status_code=500, detail="Chat completion failed.")

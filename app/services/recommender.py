@@ -1,9 +1,11 @@
 from app.prompts.recommender import RECOMMENDER_SYSTEM
 from app.core.settings import settings
+from app.services.openai import OpenAIService
+from app.services.retriever import Retriever
 
 class Recommender:
-    def __init__(self, oa, model: str, retriever):
-        self.oa = oa
+    def __init__(self, oa: OpenAIService, model: str, retriever: Retriever):
+        self.openai = oa
         self.model = model
         self.retriever = retriever
 
@@ -14,8 +16,8 @@ class Recommender:
             for c in ctx
         ])
         prompt = f"User summary: {summary}\n\nContext passages:\n{ctx_text}\n\nNow produce recommendations as per the system format."
-        response = self.oa.responses.create(
+        response = self.openai.response(
             model=self.model,
             input=[{"role":"system","content":RECOMMENDER_SYSTEM},{"role":"user","content":prompt}],
         )
-        return response.output_text
+        return response
