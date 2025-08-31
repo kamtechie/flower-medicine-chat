@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-
 # App files
 COPY app ./app
 RUN mkdir -p /app/static
@@ -33,8 +32,6 @@ RUN mkdir -p /app/chroma
 VOLUME ["/app/chroma"]
 ENV CHROMA_DIR=/app/chroma
 
-EXPOSE 8000
-
 # Healthcheck (simple)
 HEALTHCHECK CMD curl --fail http://localhost:8000/api/stats || exit 1
 
@@ -43,4 +40,6 @@ HEALTHCHECK CMD curl --fail http://localhost:8000/api/stats || exit 1
 # USER appuser
 
 # Run
-ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+ENV PORT=8000
+ENTRYPOINT ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
