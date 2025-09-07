@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 250
     OPENAI_API_KEY: str = ""
     LOG_LEVEL: str = "INFO"
+    ENV: str = "prod"
 
     model_config = {
         "env_file": ".env"

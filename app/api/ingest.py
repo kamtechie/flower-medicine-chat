@@ -5,19 +5,18 @@ from pypdf import PdfReader
 from io import BytesIO
 from app.core.utils import _chunk_text
 from app.chroma import coll
-from app.core.deps import get_logger
-from app.services.logger import LoggerService
+from app.core.logging import get_logger
 
 router = APIRouter()
 
-def _pdf_to_texts(pdf_bytes: bytes, filename: str, logger: LoggerService):
+def _pdf_to_texts(pdf_bytes: bytes, filename: str, logger):
     reader = PdfReader(BytesIO(pdf_bytes))
     items = []
     for p, page in enumerate(reader.pages, start=1):
         try:
             txt = page.extract_text() or ""
         except Exception as e:
-            logger.warning(f"PDF text extraction error on {filename} page {p}: {e}")
+            logger.warning("pdf.extract.error", filename=filename, page=p, error=str(e))
             txt = ""
         if txt.strip():
             items.extend(_chunk_text(txt, {"source": filename, "page": p}))
@@ -26,7 +25,7 @@ def _pdf_to_texts(pdf_bytes: bytes, filename: str, logger: LoggerService):
 @router.post("/ingest/pdf")
 async def ingest_pdf(
     file: UploadFile = File(...),
-    logger: LoggerService = Depends(get_logger),
+    logger = Depends(lambda: get_logger(__name__)),
 ):
     import time
     t0 = time.time()
@@ -34,11 +33,11 @@ async def ingest_pdf(
     try:
         data = await file.read()
         size_kb = len(data) / 1024.0
-        logger.info(f"Ingest PDF start: {fname} ({size_kb:.1f} KB)")
+        logger.info("ingest.pdf.start", filename=fname, size_kb=size_kb)
 
         chunks = _pdf_to_texts(data, fname, logger)
         if not chunks:
-            logger.warning(f"Ingest PDF: no extractable text in {fname}")
+            logger.warning("ingest.pdf.no_text", filename=fname)
             return JSONResponse({"ok": False, "msg": "No extractable text found."}, status_code=400)
 
         ids = []
@@ -80,29 +79,29 @@ async def ingest_pdf(
                 docs.append(c["text"])
                 metas.append(c["metadata"])
         if not docs:
-            logger.info(f"All chunks for {fname} are duplicates, skipping.")
+            logger.info("ingest.pdf.duplicates", filename=fname)
             return JSONResponse({"ok": False, "msg": "All chunks are duplicates."}, status_code=200)
         vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
         coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
 
         dt = time.time() - t0
-        logger.info(f"Ingest PDF done: {fname} -> {len(docs)} new chunks ({dt:.2f}s)")
+        logger.info("ingest.pdf.done", filename=fname, chunks=len(docs), seconds=round(dt,2))
         return {"ok": True, "chunks": len(docs), "file": fname, "seconds": round(dt, 2)}
     except Exception as e:
-        logger.exception(f"Ingest PDF failed: {fname}")
+        logger.exception("ingest.pdf.failed", filename=fname, error=str(e))
         return JSONResponse({"ok": False, "msg": str(e)}, status_code=500)
 
 @router.post("/ingest/folder")
 def ingest_folder(
     path: str = Form(...),
-    logger: LoggerService = Depends(get_logger),
+    logger = Depends(lambda: get_logger(__name__)),
 ):
     import glob
     import pathlib
     import time
     t0 = time.time()
     pdfs = glob.glob(str(pathlib.Path(path) / "**/*.pdf"), recursive=True)
-    logger.info(f"Folder ingest start: {path} -> {len(pdfs)} PDFs")
+    logger.info("ingest.folder.start", path=path, pdf_count=len(pdfs))
 
     total_chunks = 0
     files_done = 0
@@ -142,7 +141,7 @@ def ingest_folder(
             fname = os.path.basename(pdf_path)
             chunks = _pdf_to_texts(pdf_bytes, fname, logger)
             if not chunks:
-                logger.warning(f"No extractable text: {fname}")
+                logger.warning("ingest.folder.no_text", filename=fname)
                 continue
             ids = []
             docs = []
@@ -154,16 +153,16 @@ def ingest_folder(
                     docs.append(c["text"])
                     metas.append(c["metadata"])
             if not docs:
-                logger.info(f"All chunks for {fname} are duplicates, skipping.")
+                logger.info("ingest.folder.duplicates", filename=fname)
                 continue
             vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
             coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
             total_chunks += len(docs)
             files_done += 1
-            logger.info(f"Ingested {fname} -> {len(docs)} new chunks")
+            logger.info("ingest.folder.file_done", filename=fname, chunks=len(docs))
         except Exception as e:
-            logger.exception(f"Failed ingest for {pdf_path}")
+            logger.exception("ingest.folder.failed", filename=pdf_path, error=str(e))
 
     dt = time.time() - t0
-    logger.info(f"Folder ingest done: {files_done}/{len(pdfs)} files, {total_chunks} chunks ({dt:.2f}s)")
+    logger.info("ingest.folder.done", files_done=files_done, total_chunks=total_chunks, seconds=round(dt,2))
     return {"ok": True, "chunks": total_chunks, "files": files_done, "seconds": round(dt, 2)}

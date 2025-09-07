@@ -7,3 +7,5 @@ openai==1.101.0
 httpx==0.28.1
 tiktoken==0.11.0
 pydantic-settings==2.10.1
+structlog==24.4.0
+asgi-correlation-id==4.3.1

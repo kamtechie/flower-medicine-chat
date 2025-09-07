@@ -2,27 +2,23 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from app.models.dialog_models import SessionState, DialogAction
-from app.core.deps import get_planner, get_recommender, get_logger
-from app.services.planner import Planner
-from app.services.recommender import Recommender
-from app.services.logger import LoggerService
+from app.core.deps import get_planner, get_recommender
+from app.core.logging import get_logger
 from app.sessions.sessions_memory import MemoryStore
 
 router = APIRouter()
-
-
 session_store = MemoryStore()
-
-
-
 
 class StartOut(BaseModel):
     session_id: str
     message: str
 
 @router.post("/session", response_model=StartOut)
-def create_session():
+def create_session(
+    logger = Depends(lambda: get_logger(__name__)),
+):
     sid = session_store.new()
+    logger.info("session.created", session_id=sid)
     return StartOut(session_id=sid, message="Hi—how can I help today? In a few words, how do you feel.")
 
 class ChatIn(BaseModel):
@@ -58,9 +54,9 @@ def _update_session_state(state: SessionState, action: DialogAction):
 @router.post("/chat", response_model=ChatOut)
 def chat_step(
     payload: ChatIn,
-    planner: Planner = Depends(get_planner),
-    recommender: Recommender = Depends(get_recommender),
-    logger: LoggerService = Depends(get_logger),
+    planner = Depends(get_planner),
+    recommender = Depends(get_recommender),
+    logger = Depends(lambda: get_logger(__name__)),
 ):
     sid = payload.session_id
     state = session_store.get(sid)
@@ -73,10 +69,10 @@ def chat_step(
     try:
         action = planner.plan(state, user_msg)
     except Exception as e:
-        logger.exception("Planner failed: %s", e)
+        logger.exception("planner.failed", error=str(e))
         raise HTTPException(status_code=500, detail="Planner failed.")
 
-    logger.info(f"Planner action: {action.model_dump()}")
+    logger.info("planner.action", action=action.model_dump())
     _update_session_state(state, action)
     session_store.set(sid, state)
 

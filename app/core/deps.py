@@ -5,9 +5,10 @@ from app.chroma import coll
 from app.services.planner import Planner
 from app.services.recommender import Recommender
 from app.services.retriever import Retriever
-from app.services.logger import LoggerService
-def get_logger():
-    return LoggerService()
+from app.core.logging import get_logger as _get
+
+def get_logger(name: str = "app"):
+    return _get(name)
 
 def get_openai_service():
     return OpenAIService(settings.OPENAI_API_KEY)
