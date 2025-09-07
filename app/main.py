@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,9 +10,16 @@ from app.api.ingest import router as ingest_router
 from app.api.retrieval import router as retrieval_router
 from app.api.health import router as health_router
 from app.api.dialog import router as dialog_router
+from app.services.chroma import ChromaService
 
-setup_logging()
-app = FastAPI(title="Zenji RAG (Chroma + FastAPI)")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Setup phase
+    setup_logging()
+    app.state.chroma_service = ChromaService()
+    yield
+
+app = FastAPI(title="Zenji", lifespan=lifespan)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 app.add_middleware(
     CORSMiddleware,

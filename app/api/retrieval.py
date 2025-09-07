@@ -1,16 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.models import AskIn, AskOut
-from app.chroma import coll
 from app.core.settings import settings
-from fastapi import Depends
-from app.core.deps import get_logger, get_openai_service, get_retriever
-from app.services.logger import LoggerService
-import tiktoken
+from app.core.deps import get_logger, get_openai_service, get_retriever, get_chroma_repository
 from app.services.openai import OpenAIService
-from app.services.retriever import Retriever
+from app.repositories.chroma import ChromaRepository
+import tiktoken
+from app.prompts.retrieval import RETRIEVAL_SYSTEM_PROMPT
 
 router = APIRouter()
-from app.prompts.retrieval import RETRIEVAL_SYSTEM_PROMPT
 
 def _get_token_count(text: str) -> int:
     enc = tiktoken.encoding_for_model(settings.OPENAI_EMBED_MODEL)
@@ -65,9 +62,9 @@ def _build_prompt(question: str, contexts):
 @router.post("/ask", response_model=AskOut)
 def ask(
     payload: AskIn,
-    logger: LoggerService = Depends(get_logger),
+    logger = Depends(get_logger),
     openai_service: OpenAIService = Depends(get_openai_service),
-    retriever: Retriever = Depends(get_retriever)
+    chroma_repo: ChromaRepository = Depends(get_chroma_repository),
 ):
     k = payload.k or settings.TOP_K
     try:
@@ -75,7 +72,7 @@ def ask(
         if not qvecs:
             raise HTTPException(status_code=500, detail="Failed to embed question.")
         qvec = qvecs[0]
-        res = coll.query(query_embeddings=[qvec], n_results=k, where=payload.where or None)
+        res = chroma_repo.query(query_embeddings=[qvec], n_results=k, where=payload.where or None)
         docs = res.get("documents", [[]])[0]
         metas = res.get("metadatas", [[]])[0]
     except Exception as e:

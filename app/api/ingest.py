@@ -4,8 +4,9 @@ from fastapi.responses import JSONResponse
 from pypdf import PdfReader
 from io import BytesIO
 from app.core.utils import _chunk_text
-from app.chroma import coll
 from app.core.logging import get_logger
+from app.core.deps import get_chroma_repository
+from app.repositories.chroma import ChromaRepository
 
 router = APIRouter()
 
@@ -26,10 +27,15 @@ def _pdf_to_texts(pdf_bytes: bytes, filename: str, logger):
 async def ingest_pdf(
     file: UploadFile = File(...),
     logger = Depends(lambda: get_logger(__name__)),
+    chroma_repo: ChromaRepository = Depends(get_chroma_repository),
 ):
     import time
     t0 = time.time()
     fname = file.filename
+    if not fname:
+        return JSONResponse({"ok": False, "msg": "Filename is required."}, status_code=400)
+    if not fname.lower().endswith(".pdf"):
+        return JSONResponse({"ok": False, "msg": "Only PDF files are supported."}, status_code=400)
     try:
         data = await file.read()
         size_kb = len(data) / 1024.0
@@ -69,7 +75,7 @@ async def ingest_pdf(
 
         embeddings = _embed([c["text"] for c in chunks])
         def _is_duplicate_chunk(chunk_embedding, chunk_text, source_meta):
-            results = coll.query(query_embeddings=[chunk_embedding], where={"source": source_meta.get("source")}, n_results=1)
+            results = chroma_repo.query(query_embeddings=[chunk_embedding], where={"source": source_meta.get("source")}, n_results=1)
             docs = results.get("documents", [[]])[0] if results and results.get("documents") else []
             return any(doc == chunk_text for doc in docs)
 
@@ -82,7 +88,7 @@ async def ingest_pdf(
             logger.info("ingest.pdf.duplicates", filename=fname)
             return JSONResponse({"ok": False, "msg": "All chunks are duplicates."}, status_code=200)
         vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
-        coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
+        chroma_repo.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
 
         dt = time.time() - t0
         logger.info("ingest.pdf.done", filename=fname, chunks=len(docs), seconds=round(dt,2))
@@ -95,6 +101,7 @@ async def ingest_pdf(
 def ingest_folder(
     path: str = Form(...),
     logger = Depends(lambda: get_logger(__name__)),
+    chroma_repo: ChromaRepository = Depends(get_chroma_repository),
 ):
     import glob
     import pathlib
@@ -130,7 +137,7 @@ def ingest_folder(
         return out
 
     def _is_duplicate_chunk(chunk_embedding, chunk_text, source_meta):
-        results = coll.query(query_embeddings=[chunk_embedding], where={"source": source_meta.get("source")}, n_results=1)
+        results = chroma_repo.query(query_embeddings=[chunk_embedding], where={"source": source_meta.get("source")}, n_results=1)
         docs = results.get("documents", [[]])[0] if results and results.get("documents") else []
         return any(doc == chunk_text for doc in docs)
 
@@ -156,7 +163,7 @@ def ingest_folder(
                 logger.info("ingest.folder.duplicates", filename=fname)
                 continue
             vecs = [emb for c, emb in zip(chunks, embeddings) if not _is_duplicate_chunk(emb, c["text"], c["metadata"])]
-            coll.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
+            chroma_repo.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=vecs)
             total_chunks += len(docs)
             files_done += 1
             logger.info("ingest.folder.file_done", filename=fname, chunks=len(docs))
