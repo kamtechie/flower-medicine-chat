@@ -7,6 +7,7 @@ from app.services.retriever import Retriever
 from app.core.logging import get_logger as _get
 from app.services.chroma import ChromaService
 from app.repositories.chroma import ChromaRepository
+from app.services.ingest import IngestService
 
 def get_logger(name: str = "app"):
     return _get(name)
@@ -30,4 +31,10 @@ def get_planner(openai_service=Depends(get_openai_service)):
 
 def get_recommender(openai_service=Depends(get_openai_service), retriever=Depends(get_retriever)):
     return Recommender(openai_service, settings.OPENAI_CHAT_MODEL, retriever)
+
+def get_ingest_service(
+    chroma_repo: ChromaRepository = Depends(get_chroma_repository),
+    openai_service: OpenAIService = Depends(get_openai_service),
+) -> IngestService:
+    return IngestService(chroma_repo, openai_service)
 
